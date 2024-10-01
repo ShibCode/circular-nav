@@ -19,35 +19,38 @@ const CircularNav = ({ links, gap = 0 }) => {
     const words = [...document.querySelectorAll(".link-word")];
     const chars = [...document.querySelectorAll(".link-char")];
 
-    const totalWidth = accumulateWidth(chars);
+    const handleResize = () => {
+      const totalWidth = accumulateWidth(chars);
+      const fontSize = parseInt(
+        getComputedStyle(circle.current).fontSize.split("px")[0]
+      );
 
-    const fontSize = parseInt(
-      getComputedStyle(circle.current).fontSize.split("px")[0]
-    );
+      const radius = circle.current.clientWidth / 2 - fontSize / 2;
 
-    const radius = circle.current.clientWidth / 2 - fontSize / 2;
+      const firstLinkLength = (links[0].label.length - 1) / 2;
 
-    const firstLinkLength = (links[0].label.length - 1) / 2;
+      const offset = -((fontSize * firstLinkLength) / totalWidth) * 360;
 
-    const offset = -((fontSize * firstLinkLength) / totalWidth) * 360;
+      chars.reduce(
+        (acc, curr) => {
+          const rawAngleDeg = (acc.width / totalWidth) * 360 + offset;
 
-    chars.reduce(
-      (acc, curr) => {
-        const rawAngleDeg = (acc.width / totalWidth) * 360 + offset;
+          const angleDeg = ((rawAngleDeg % 360) + 360) % 360;
+          const angleRad = angleDeg * (Math.PI / 180);
 
-        const angleDeg = ((rawAngleDeg % 360) + 360) % 360;
-        const angleRad = angleDeg * (Math.PI / 180);
+          curr.style.translate = `${radius * Math.sin(angleRad)}px ${
+            -radius * Math.cos(angleRad)
+          }px`;
 
-        curr.style.translate = `${radius * Math.sin(angleRad)}px ${
-          -radius * Math.cos(angleRad)
-        }px`;
+          curr.style.rotate = `${angleDeg}deg`;
 
-        curr.style.rotate = `${angleDeg}deg`;
+          return { ...acc, width: acc.width + curr.clientWidth };
+        },
+        { width: 0 }
+      );
+    };
 
-        return { ...acc, width: acc.width + curr.clientWidth };
-      },
-      { width: 0 }
-    );
+    handleResize();
 
     const rotate = () => {
       const currentRotation = Number(
@@ -110,8 +113,12 @@ const CircularNav = ({ links, gap = 0 }) => {
       rotation.current += e.deltaY * 0.05;
     };
 
+    window.addEventListener("resize", handleResize);
     circle.current.addEventListener("wheel", handleWheel);
-    return () => circle.current.removeEventListener("wheel", handleWheel);
+    return () => {
+      window.removeEventListener("resize", handleResize);
+      circle.current.removeEventListener("wheel", handleWheel);
+    };
   }, []);
 
   return (
